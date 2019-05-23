@@ -1,12 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using DatingApp.API.Data;
+using DatingApp.API.Helpers;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -62,6 +66,21 @@ namespace DatingApp.API
             }
             else
             {
+                
+                // configuração para facilitar captura de detalhes da exceção pela aplicação ANGULAR
+                // obs, ver arquivo 'Helpers/Extentions.cs' criado com o propósito de complementar essa config
+                app.UseExceptionHandler( buider => {
+                    buider.Run(async context => {
+                        context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+                        var error = context.Features.Get<IExceptionHandlerFeature>();
+
+                        if(error != null){
+                            context.Response.AddApplicationError(error.Error.Message); // arquivo 'Helpers/Extentions.cs' contem esse método extensor
+                            await context.Response.WriteAsync(error.Error.Message);
+                        }
+                    });
+                });
+
                 // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
                 //app.UseHsts();
             }
