@@ -14,23 +14,26 @@ import { AuthService } from 'src/app/_services/auth.service';
 export class MemberEditComponent implements OnInit {
   @ViewChild('editForm') editForm: NgForm;
   user: User;
+  photoUrl: string;
 
   // a config abaixo configura solicitação de confirmação caso o ...
   // ... usuário tente fechar uma aba ou janela do browser sem salvar uma alteração no formulário
   // (não tem como configurar msg de confirmação)
   @HostListener('window:beforeunload', ['$event'])
-  unloadNotifications($event: any){
+  unloadNotifications($event: any) {
     if (this.editForm.dirty) {
       $event.returnValue = true;
     }
   }
 
+// tslint:disable-next-line: max-line-length
   constructor(private route: ActivatedRoute, private alertify: AlertifyService, private userService: UserService, private authService: AuthService) { }
 
   ngOnInit() {
     this.route.data.subscribe(data => {
       this.user = data.user;
     });
+    this.authService.currentPhotoUrl.subscribe(photoUrl => this.photoUrl = photoUrl);
   }
 
   updateUser() {
@@ -40,8 +43,10 @@ export class MemberEditComponent implements OnInit {
     }, error => {
       this.alertify.error(error);
     });
-
-
   }
+
+  // updateMainPhoto(photoUrl: string){
+  //   this.user.photoUrl = photoUrl;
+  // }
 
 }

@@ -50,6 +50,9 @@ namespace DatingApp.API
             // adiciona permissão para acesso via API (browser não retorna os dados sem essa permissão)
             services.AddCors();
 
+            // adiciona mapeamento de valores da config definida em 'appsettings.json' para a classe C#
+            services.Configure<CloudinarySettings>(Configuration.GetSection("CloudinarySettings"));
+
             // adiciona mapeamento de injeção das dependencias entre interface e classes concretas
             services.AddScoped<IAuthRepository, AuthRepository>();
             services.AddScoped<IDatingRepository, DatingRepository>();

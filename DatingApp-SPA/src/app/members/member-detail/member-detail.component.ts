@@ -53,7 +53,7 @@ export class MemberDetailComponent implements OnInit {
     this.galleryImages = this.getImages();
   }
 
-  getImages(){
+  getImages() {
     const imageUrls = [];
     // tslint:disable-next-line: prefer-for-of
     for (let i = 0; i < this.user.photos.length; i++) {
