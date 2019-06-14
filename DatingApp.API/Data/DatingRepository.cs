@@ -27,6 +27,11 @@ namespace DatingApp.API.Data
              _context.Remove(entity);
         }
 
+        public async Task<Like> GetLike(int userId, int recipientId)
+        {
+            return await _context.Likes.FirstOrDefaultAsync(u => u.LikerId == userId && u.LikeeId == recipientId);
+        }
+
         public async Task<Photo> GetMainPhotoForUser(int userId)
         {
             return await _context.Photos.Where(x => x.UserId == userId).FirstOrDefaultAsync(p => p.IsMain);
@@ -52,6 +57,18 @@ namespace DatingApp.API.Data
             // filtra pelo genero informado
             users = users.Where(u => u.Gender == userParams.Gender);
 
+            if(userParams.Likers)
+            {
+                var userLikers = await GetUserLikes(userParams.UserId, userParams.Likers);
+                users = users.Where(u => userLikers.Contains(u.Id));
+            }
+
+            if(userParams.Likees)
+            {
+                var userLikees = await GetUserLikes(userParams.UserId, userParams.Likers);
+                users = users.Where(u => userLikees.Contains(u.Id));
+            }
+
             if(userParams.MinAge != 18 || userParams.MaxAge != 99) {
                 var minDateOfBirth = DateTime.Today.AddYears(-userParams.MaxAge -1);
                 var maxDateOfBirth = DateTime.Today.AddYears(-userParams.MinAge);
@@ -71,6 +88,19 @@ namespace DatingApp.API.Data
             }
 
             return await PagedList<User>.CreateAsync(users, userParams.PageNumber, userParams.PageSize);
+        }
+
+        // retorna lista de pessoas curtidas ou que curtiram
+        private async Task<IEnumerable<int>> GetUserLikes(int id, bool likers)
+        {
+            var user = await _context.Users.Include(u => u.Likers).Include(u => u.Likees).FirstOrDefaultAsync(x => x.Id == id);
+        
+            if(likers){
+                return user.Likers.Where(u => u.LikeeId == id).Select(x => x.LikerId); // traz lista de pessoas que curtiram o usuário corrente
+            }
+            else {
+                return user.Likees.Where(u => u.LikerId == id).Select(x => x.LikeeId); // traz lista de pessoas que o usuário corrente curtiu
+            }
         }
 
         public async Task<bool> SaveAll()
