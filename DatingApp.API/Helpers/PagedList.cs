@@ -14,8 +14,8 @@ namespace DatingApp.API.Helpers
             this.TotalPages = totalPages;
             this.PageSize = pageSize;
             this.TotalCount = totalCount;
-               
         }
+        
         public int CurrentPage { get; set; }
         public int TotalPages { get; set; }
         public int PageSize { get; set; }

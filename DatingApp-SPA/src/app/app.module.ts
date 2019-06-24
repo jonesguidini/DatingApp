@@ -32,6 +32,8 @@ import { MemberEditResolver } from './_resolvers/member-edit.resolver';
 import { PreventUnsavedChanges } from './_guards/prevent-unsaved-changes.guard';
 import { PhotoEditorComponent } from './members/photo-editor/photo-editor.component';
 import { ListResolver } from './_resolvers/list.resolver';
+import { MessageResolver } from './_resolvers/message.resolver';
+import { MemberMessagesComponent } from './members/member-messages/member-messages.component';
 
 
 
@@ -53,6 +55,7 @@ export function tokenGetterFunc() {
       MemberDetailComponent,
       MemberEditComponent,
       PhotoEditorComponent,
+      MemberMessagesComponent,
       TimeAgoPipe
    ],
    imports: [
@@ -87,6 +90,7 @@ export function tokenGetterFunc() {
       MemberDetailResolver,
       MemberListResolver,
       MemberEditResolver,
+      MessageResolver,
       ListResolver,
       PreventUnsavedChanges
    ],
