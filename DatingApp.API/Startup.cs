@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -34,6 +35,50 @@ namespace DatingApp.API
 
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
+        {
+            services.AddDbContext<DataContext>(x => x.UseMySql(Configuration.GetConnectionString("DefaultConnection"))
+                // adiciona config p ignorar warnings quando app estiver rodando no terminal
+                .ConfigureWarnings(warnings => warnings.Ignore(CoreEventId.IncludeIgnoredWarning))); 
+
+
+            services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1) // mudado de 2.2 p 2.1
+               .AddJsonOptions( opt => {
+                   opt.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore; // ignora self reference **MUITO UTIL
+               }) ; 
+
+            // adiciona a classe Seed que contem alguns registros de usuários pré preenchidos para registro em desenvolvimento 
+            services.AddTransient<Seed>();
+
+            services.AddAutoMapper();
+
+            // adiciona permissão para acesso via API (browser não retorna os dados sem essa permissão)
+            services.AddCors();
+
+            // adiciona mapeamento de valores da config definida em 'appsettings.json' para a classe C#
+            services.Configure<CloudinarySettings>(Configuration.GetSection("CloudinarySettings"));
+
+            // adiciona mapeamento de injeção das dependencias entre interface e classes concretas
+            services.AddScoped<IAuthRepository, AuthRepository>();
+            services.AddScoped<IDatingRepository, DatingRepository>();
+
+            // adiciona autenticação middleware (Jwt)
+            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            .AddJwtBearer(options => {
+                options.TokenValidationParameters = new TokenValidationParameters 
+                {
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII
+                        .GetBytes(Configuration.GetSection("AppSettings:Token").Value)),
+                    ValidateIssuer = false,
+                    ValidateAudience = false
+                };
+            });
+
+            // adiciona registrador de log (ultima atividade)
+            services.AddScoped<LogUserActivity>();
+        }
+
+        public void ConfigureDevelopmentServices(IServiceCollection services)
         {
             services.AddDbContext<DataContext>(x => x.UseSqlite(Configuration.GetConnectionString("DefaultConnection")));
 
@@ -107,7 +152,18 @@ namespace DatingApp.API
 
             app.UseCors(x => x.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
             app.UseAuthentication();
-            app.UseMvc();
+            
+            app.UseDefaultFiles(); //carrega os arquivos default como 'index', 'default' entre outros dentro da pasta 'wwwroot'
+            app.UseStaticFiles(); // essa função habilita que o IIS rode a aplicação de dentro da pasta 'wwwroot'
+
+            app.UseMvc(routes => {
+                // a configuração usada aqui é para configurar a aplição disponibilizada no diretório 'wwwroot'
+                // verificar arquivo 'controllers/Fallback.cs' criado com esse propósito
+                routes.MapSpaFallbackRoute(
+                    name: "spa-fallback",
+                    defaults: new { controller = "Fallback", action = "Index"}
+                );
+            });
         }
     }
 }
