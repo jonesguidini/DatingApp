@@ -7,13 +7,17 @@ using System.Threading.Tasks;
 using AutoMapper;
 using DatingApp.API.Data;
 using DatingApp.API.Helpers;
+using DatingApp.API.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpsPolicy;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
@@ -34,73 +38,68 @@ namespace DatingApp.API
         public IConfiguration Configuration { get; }
 
         // This method gets called by the runtime. Use this method to add services to the container.
+        // public void ConfigureServices(IServiceCollection services)
+        // {
+        //     services.AddDbContext<DataContext>(x => x.UseMySql(Configuration.GetConnectionString("DefaultConnection"))
+        //         // adiciona config p ignorar warnings quando app estiver rodando no terminal
+        //         .ConfigureWarnings(warnings => warnings.Ignore(CoreEventId.IncludeIgnoredWarning))); 
+
+
+        //     services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1) // mudado de 2.2 p 2.1
+        //        .AddJsonOptions( opt => {
+        //            opt.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore; // ignora self reference **MUITO UTIL
+        //        }) ; 
+
+        //     // adiciona a classe Seed que contem alguns registros de usuários pré preenchidos para registro em desenvolvimento 
+        //     services.AddTransient<Seed>();
+
+        //     services.AddAutoMapper();
+
+        //     // adiciona permissão para acesso via API (browser não retorna os dados sem essa permissão)
+        //     services.AddCors();
+
+        //     // adiciona mapeamento de valores da config definida em 'appsettings.json' para a classe C#
+        //     services.Configure<CloudinarySettings>(Configuration.GetSection("CloudinarySettings"));
+
+        //     // adiciona mapeamento de injeção das dependencias entre interface e classes concretas
+        //     services.AddScoped<IAuthRepository, AuthRepository>();
+        //     services.AddScoped<IDatingRepository, DatingRepository>();
+
+        //     // adiciona autenticação middleware (Jwt)
+        //     services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+        //     .AddJwtBearer(options => {
+        //         options.TokenValidationParameters = new TokenValidationParameters 
+        //         {
+        //             ValidateIssuerSigningKey = true,
+        //             IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII
+        //                 .GetBytes(Configuration.GetSection("AppSettings:Token").Value)),
+        //             ValidateIssuer = false,
+        //             ValidateAudience = false
+        //         };
+        //     });
+
+        //     // adiciona registrador de log (ultima atividade)
+        //     services.AddScoped<LogUserActivity>();
+        // }
+
         public void ConfigureServices(IServiceCollection services)
-        {
-            services.AddDbContext<DataContext>(x => x.UseMySql(Configuration.GetConnectionString("DefaultConnection"))
-                // adiciona config p ignorar warnings quando app estiver rodando no terminal
-                .ConfigureWarnings(warnings => warnings.Ignore(CoreEventId.IncludeIgnoredWarning))); 
-
-
-            services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1) // mudado de 2.2 p 2.1
-               .AddJsonOptions( opt => {
-                   opt.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore; // ignora self reference **MUITO UTIL
-               }) ; 
-
-            // adiciona a classe Seed que contem alguns registros de usuários pré preenchidos para registro em desenvolvimento 
-            services.AddTransient<Seed>();
-
-            services.AddAutoMapper();
-
-            // adiciona permissão para acesso via API (browser não retorna os dados sem essa permissão)
-            services.AddCors();
-
-            // adiciona mapeamento de valores da config definida em 'appsettings.json' para a classe C#
-            services.Configure<CloudinarySettings>(Configuration.GetSection("CloudinarySettings"));
-
-            // adiciona mapeamento de injeção das dependencias entre interface e classes concretas
-            services.AddScoped<IAuthRepository, AuthRepository>();
-            services.AddScoped<IDatingRepository, DatingRepository>();
-
-            // adiciona autenticação middleware (Jwt)
-            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-            .AddJwtBearer(options => {
-                options.TokenValidationParameters = new TokenValidationParameters 
-                {
-                    ValidateIssuerSigningKey = true,
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII
-                        .GetBytes(Configuration.GetSection("AppSettings:Token").Value)),
-                    ValidateIssuer = false,
-                    ValidateAudience = false
-                };
-            });
-
-            // adiciona registrador de log (ultima atividade)
-            services.AddScoped<LogUserActivity>();
-        }
-
-        public void ConfigureDevelopmentServices(IServiceCollection services)
         {
             services.AddDbContext<DataContext>(x => x.UseSqlite(Configuration.GetConnectionString("DefaultConnection")));
 
-            services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1) // mudado de 2.2 p 2.1
-               .AddJsonOptions( opt => {
-                   opt.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore; // ignora self reference **MUITO UTIL
-               }) ; 
+            // cria configuração para Identity Core
+            IdentityBuilder builder = services.AddIdentityCore<User>(opt => {
+                opt.Password.RequireDigit = false; // não é recomentado para versão em produção... requerer digitos na senha aumenta a segurança
+                opt.Password.RequiredLength = 4;  // não é recomentado para versão em produção
+                opt.Password.RequireNonAlphanumeric = false; // não é recomentado para versão em produção
+                opt.Password.RequireUppercase = false; // não é recomentado para versão em produção
+            });
 
-            // adiciona a classe Seed que contem alguns registros de usuários pré preenchidos para registro em desenvolvimento 
-            services.AddTransient<Seed>();
-
-            services.AddAutoMapper();
-
-            // adiciona permissão para acesso via API (browser não retorna os dados sem essa permissão)
-            services.AddCors();
-
-            // adiciona mapeamento de valores da config definida em 'appsettings.json' para a classe C#
-            services.Configure<CloudinarySettings>(Configuration.GetSection("CloudinarySettings"));
-
-            // adiciona mapeamento de injeção das dependencias entre interface e classes concretas
-            services.AddScoped<IAuthRepository, AuthRepository>();
-            services.AddScoped<IDatingRepository, DatingRepository>();
+            // adiciona aos usuários as Roles do msmo
+            builder = new IdentityBuilder(builder.UserType, typeof(Role), builder.Services);
+            builder.AddEntityFrameworkStores<DataContext>();
+            builder.AddRoleValidator<RoleValidator<Role>>();
+            builder.AddRoleManager<RoleManager<Role>>();
+            builder.AddSignInManager<SignInManager<User>>();
 
             // adiciona autenticação middleware (Jwt)
             services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -114,6 +113,48 @@ namespace DatingApp.API
                     ValidateAudience = false
                 };
             });
+
+            // criado Policies
+            services.AddAuthorization(options => {
+                options.AddPolicy("RequireAdminRole", policy => policy.RequireRole("Admin"));
+                options.AddPolicy("ModeratePhotoRole", policy => policy.RequireRole("Admin", "Moderator"));
+                options.AddPolicy("VipOnle", policy => policy.RequireRole("VIP"));
+            });
+
+            services.AddMvc(opt => 
+                {
+                    // a definição de OPT aqui substitui o uso de 'authorize' em todos controllers... a autorização vai ser globalmente p todos controllers
+                    // ou seja, toda requisição deverá ser autenticada automaticamente
+                    // no caso do AuthController foi adicionado o 'AllowAnonymous' p liberar essa autenticação
+
+                    var policy = new AuthorizationPolicyBuilder()
+                        .RequireAuthenticatedUser()
+                        .Build();
+
+                    opt.Filters.Add(new AuthorizeFilter(policy));
+                })
+                .SetCompatibilityVersion(CompatibilityVersion.Version_2_1) // mudado de 2.2 p 2.1
+                .AddJsonOptions( opt => {
+                   opt.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore; // ignora self reference **MUITO UTIL
+               }) ; 
+
+            // adiciona a classe Seed que contem alguns registros de usuários pré preenchidos para registro em desenvolvimento 
+            services.AddTransient<Seed>();
+
+            // fix p resolver a questão do comando 'dotnet ef database drop'
+            Mapper.Reset();
+
+            services.AddAutoMapper();
+
+            // adiciona permissão para acesso via API (browser não retorna os dados sem essa permissão)
+            services.AddCors();
+
+            // adiciona mapeamento de valores da config definida em 'appsettings.json' para a classe C#
+            services.Configure<CloudinarySettings>(Configuration.GetSection("CloudinarySettings"));
+
+            // adiciona mapeamento de injeção das dependencias entre interface e classes concretas
+            // services.AddScoped<IAuthRepository, AuthRepository>(); // não precisa mais uma vez q o Entity user core já tem os métodos necessários
+            services.AddScoped<IDatingRepository, DatingRepository>();
 
             // adiciona registrador de log (ultima atividade)
             services.AddScoped<LogUserActivity>();
@@ -148,7 +189,7 @@ namespace DatingApp.API
             }
 
             //app.UseHttpsRedirection();
-            //seeder.SeedUsers(); // seed registros de usuários p teste em desenvolvimento
+            seeder.SeedUsers(); // seed registros de usuários p teste em desenvolvimento
 
             app.UseCors(x => x.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
             app.UseAuthentication();
