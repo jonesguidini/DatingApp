@@ -144,6 +144,7 @@ namespace DatingApp.API
             // fix p resolver a questão do comando 'dotnet ef database drop'
             Mapper.Reset();
 
+            // adiciona AutoMapper
             services.AddAutoMapper();
 
             // adiciona permissão para acesso via API (browser não retorna os dados sem essa permissão)
